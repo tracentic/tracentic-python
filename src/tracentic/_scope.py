@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Mapping
 from uuid import uuid4
 
 
@@ -65,8 +66,11 @@ class TracenticScope:
         return self._started_at
 
     @property
-    def attributes(self) -> dict[str, Any]:
-        return self._attributes
+    def attributes(self) -> Mapping[str, Any]:
+        # Read-only view: callers must not mutate scope state after creation.
+        # Returning the raw dict allowed `scope.attributes["x"] = ...` to leak
+        # into recorded spans, breaking the "fire and forget" contract.
+        return MappingProxyType(self._attributes)
 
     # ── Child scope creation ─────────────────────────────────────
 

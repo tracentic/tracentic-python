@@ -36,29 +36,42 @@ class AttributeMerger:
         scope: TracenticScope | None,
         span_attributes: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        # Layer 1 — global (lowest priority)
-        result: dict[str, Any] = self._global.get_all()
-
-        # Layer 2 — scope attributes
-        if scope is not None:
-            result.update(scope.attributes)
-
-        # Layer 3 — span-level (highest priority)
-        if span_attributes:
-            result.update(span_attributes)
-
-        return self._enforce(result)
-
-    def _enforce(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # Build the result in priority order (span -> scope -> global) so that
+        # when max_attribute_count is hit, the lower-priority layers are the
+        # ones dropped — never a span-level attribute.
         result: dict[str, Any] = {}
-        count = 0
 
-        for key, value in attrs.items():
+        if span_attributes:
+            self._add_layer(result, span_attributes)
+
+        if scope is not None and len(result) < self._limits.max_attribute_count:
+            self._add_layer(result, scope.attributes)
+
+        if len(result) < self._limits.max_attribute_count:
+            self._add_layer(result, self._global.get_all())
+
+        return result
+
+    def _add_layer(
+        self,
+        result: dict[str, Any],
+        layer: dict[str, Any],
+    ) -> None:
+        for key, value in layer.items():
             safe_key = (
                 key[: self._limits.max_key_length]
                 if len(key) > self._limits.max_key_length
                 else key
             )
+
+            # Higher-priority layer already wrote this key — skip; do not let a
+            # lower-priority layer overwrite it.
+            if safe_key in result:
+                continue
+
+            if len(result) >= self._limits.max_attribute_count:
+                return
+
             safe_value = (
                 value[: self._limits.max_string_value_length]
                 if isinstance(value, str)
@@ -67,9 +80,3 @@ class AttributeMerger:
             )
 
             result[safe_key] = safe_value
-            count += 1
-
-            if count >= self._limits.max_attribute_count:
-                break
-
-        return result

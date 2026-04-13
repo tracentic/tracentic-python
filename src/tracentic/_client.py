@@ -79,7 +79,11 @@ class Tracentic:
     ) -> None:
         """Record a completed LLM span, optionally associated with a scope."""
         if isinstance(scope_or_span, TracenticScope):
-            assert span is not None
+            if span is None:
+                raise TypeError(
+                    "record_span(scope, span): span argument is required when "
+                    "the first argument is a TracenticScope"
+                )
             merged = self._merger.merge(scope_or_span, span.attributes)
             self._record_internal(span, merged, scope_or_span)
         else:
@@ -101,12 +105,19 @@ class Tracentic:
     ) -> None:
         """Record an LLM span that resulted in an error."""
         if isinstance(scope_or_span, TracenticScope):
-            assert isinstance(span_or_error, TracenticSpan)
-            assert error is not None
+            if not isinstance(span_or_error, TracenticSpan) or error is None:
+                raise TypeError(
+                    "record_error(scope, span, error): expected (TracenticScope, "
+                    "TracenticSpan, BaseException)"
+                )
             merged = self._merger.merge(scope_or_span, span_or_error.attributes)
             self._record_error_internal(span_or_error, merged, error, scope_or_span)
         else:
-            assert isinstance(span_or_error, BaseException)
+            if not isinstance(span_or_error, BaseException):
+                raise TypeError(
+                    "record_error(span, error): second argument must be a "
+                    "BaseException"
+                )
             merged = self._merger.merge(None, scope_or_span.attributes)
             self._record_error_internal(scope_or_span, merged, span_or_error, None)
 
