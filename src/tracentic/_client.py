@@ -21,7 +21,17 @@ class Tracentic:
     instance rather than constructing directly.
     """
 
-    __slots__ = ("_global", "_merger", "_options", "_exporter", "_exit_registered")
+    __slots__ = (
+        "_global",
+        "_merger",
+        "_service_name",
+        "_endpoint",
+        "_environment",
+        "_custom_pricing",
+        "_attribute_limits",
+        "_exporter",
+        "_exit_registered",
+    )
 
     def __init__(
         self,
@@ -35,13 +45,11 @@ class Tracentic:
         exporter: OtlpJsonExporter | None,
     ) -> None:
         self._global = global_context
-        self._options = {
-            "service_name": service_name,
-            "endpoint": endpoint,
-            "environment": environment,
-            "custom_pricing": custom_pricing,
-            "attribute_limits": attribute_limits,
-        }
+        self._service_name = service_name
+        self._endpoint = endpoint
+        self._environment = environment
+        self._custom_pricing: dict[str, Any] | None = custom_pricing
+        self._attribute_limits = attribute_limits
         self._merger = AttributeMerger(global_context, attribute_limits)
         self._exporter = exporter
         self._exit_registered = False
@@ -68,14 +76,15 @@ class Tracentic:
         )
 
     @overload
-    def record_span(self, scope: TracenticScope, span: TracenticSpan) -> None: ...
+    def record_span(self, scope: TracenticScope, span: TracenticSpan, /) -> None: ...
     @overload
-    def record_span(self, span: TracenticSpan) -> None: ...
+    def record_span(self, span: TracenticSpan, /) -> None: ...
 
     def record_span(
         self,
         scope_or_span: TracenticScope | TracenticSpan,
         span: TracenticSpan | None = None,
+        /,
     ) -> None:
         """Record a completed LLM span, optionally associated with a scope."""
         if isinstance(scope_or_span, TracenticScope):
@@ -92,16 +101,23 @@ class Tracentic:
 
     @overload
     def record_error(
-        self, scope: TracenticScope, span: TracenticSpan, error: BaseException
+        self,
+        scope: TracenticScope,
+        span: TracenticSpan,
+        error: BaseException,
+        /,
     ) -> None: ...
     @overload
-    def record_error(self, span: TracenticSpan, error: BaseException) -> None: ...
+    def record_error(
+        self, span: TracenticSpan, error: BaseException, /
+    ) -> None: ...
 
     def record_error(
         self,
         scope_or_span: TracenticScope | TracenticSpan,
         span_or_error: TracenticSpan | BaseException,
         error: BaseException | None = None,
+        /,
     ) -> None:
         """Record an LLM span that resulted in an error."""
         if isinstance(scope_or_span, TracenticScope):
@@ -209,7 +225,7 @@ class Tracentic:
             attrs["tracentic.scope.correlation_id"] = scope.correlation_id
 
     def _set_cost(self, attrs: dict[str, Any], span: TracenticSpan) -> None:
-        custom_pricing = self._options["custom_pricing"]
+        custom_pricing = self._custom_pricing
         if (
             span.model is None
             or span.input_tokens is None

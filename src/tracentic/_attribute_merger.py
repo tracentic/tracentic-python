@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from ._global_context import TracenticGlobalContext
@@ -55,7 +56,7 @@ class AttributeMerger:
     def _add_layer(
         self,
         result: dict[str, Any],
-        layer: dict[str, Any],
+        layer: Mapping[str, Any],
     ) -> None:
         for key, value in layer.items():
             safe_key = (
