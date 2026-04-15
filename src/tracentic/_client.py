@@ -7,19 +7,19 @@ import atexit
 import logging
 from typing import Any, overload
 
-_logger = logging.getLogger("tracentic")
-
-TRACENTIC_SCOPE_HEADER = "x-tracentic-scope-id"
-"""Header / message-property name for propagating a parent scope ID
-across services. Use this constant rather than hard-coding the string
-so a typo on either end can't silently break cross-service linking."""
-
 from ._attribute_merger import AttributeMerger
 from ._exporter import ExportableSpan, OtlpJsonExporter
 from ._global_context import TracenticGlobalContext
 from ._options import AttributeLimits, TracenticOptions
 from ._scope import TracenticScope
 from ._span import TracenticSpan
+
+_logger = logging.getLogger("tracentic")
+
+TRACENTIC_SCOPE_HEADER = "x-tracentic-scope-id"
+"""Header / message-property name for propagating a parent scope ID
+across services. Use this constant rather than hard-coding the string
+so a typo on either end can't silently break cross-service linking."""
 
 
 class Tracentic:
