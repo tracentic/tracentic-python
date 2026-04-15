@@ -10,6 +10,18 @@ pip install tracentic
 
 Requires **Python 3.10+**. The only runtime dependency is [httpx](https://www.python-httpx.org/).
 
+## Endpoint
+
+Point the SDK at the Tracentic ingestion endpoint by setting `endpoint="https://tracentic.dev"` on `TracenticOptions`. This is the hosted service URL that receives spans over OTLP/HTTP JSON — use it unless you're running a self-hosted Tracentic deployment, in which case set your own URL.
+
+```python
+tracentic = create_tracentic(TracenticOptions(
+    api_key="your-api-key",
+    endpoint="https://tracentic.dev",
+    service_name="my-service",
+))
+```
+
 ## Quick start
 
 ```python
@@ -19,6 +31,7 @@ from tracentic import TracenticOptions, TracenticSpan, create_tracentic
 
 tracentic = create_tracentic(TracenticOptions(
     api_key="your-api-key",
+    endpoint="https://tracentic.dev",
     service_name="my-service",
     environment="production",
 ))
@@ -200,7 +213,7 @@ await tracentic.shutdown()
 |--------|---------|-------------|
 | `api_key` | `None` | API key. If `None`, spans are created locally but not exported |
 | `service_name` | `"unknown-service"` | Service identifier in the dashboard |
-| `endpoint` | `"https://ingest.tracentic.dev"` | OTLP ingestion endpoint |
+| `endpoint` | `"https://tracentic.dev"` | Tracentic ingestion endpoint. Use `https://tracentic.dev` for the hosted service. Override only for self-hosted deployments. |
 | `environment` | `"production"` | Deployment environment tag |
 | `custom_pricing` | `None` | Model pricing for cost calculation |
 | `global_attributes` | `None` | Static attributes on every span |

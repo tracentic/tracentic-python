@@ -143,8 +143,7 @@ class OtlpJsonExporter:
             ]
         }
 
-        try:
-            client = self._client or httpx.AsyncClient(timeout=5.0)
+        async def _post(client: httpx.AsyncClient) -> None:
             response = await client.post(
                 self._endpoint,
                 json=request_body,
@@ -160,6 +159,13 @@ class OtlpJsonExporter:
                     response.reason_phrase,
                     response.text,
                 )
+
+        try:
+            if self._client is not None:
+                await _post(self._client)
+            else:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await _post(client)
         except Exception as exc:
             _log.debug("Tracentic export error: %s", exc)
 

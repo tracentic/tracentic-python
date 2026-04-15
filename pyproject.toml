@@ -6,12 +6,15 @@ build-backend = "hatchling.build"
 name = "tracentic"
 version = "0.1.0"
 description = "Tracentic SDK for Python — LLM observability with scoped tracing and OTLP export"
-license = "MIT"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Tracentic" }]
 requires-python = ">=3.10"
+keywords = ["tracentic", "llm", "observability", "tracing", "otlp", "opentelemetry", "ai", "monitoring"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -24,6 +27,12 @@ classifiers = [
 dependencies = [
     "httpx>=0.27",
 ]
+
+[project.urls]
+Homepage = "https://github.com/tracentic/tracentic-python"
+Repository = "https://github.com/tracentic/tracentic-python"
+"Bug Tracker" = "https://github.com/tracentic/tracentic-python/issues"
+Changelog = "https://github.com/tracentic/tracentic-python/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 starlette = ["starlette>=0.27"]
