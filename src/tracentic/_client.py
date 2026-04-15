@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import logging
 from typing import Any, overload
+
+_logger = logging.getLogger("tracentic")
+
+TRACENTIC_SCOPE_HEADER = "x-tracentic-scope-id"
+"""Header / message-property name for propagating a parent scope ID
+across services. Use this constant rather than hard-coding the string
+so a typo on either end can't silently break cross-service linking."""
 
 from ._attribute_merger import AttributeMerger
 from ._exporter import ExportableSpan, OtlpJsonExporter
@@ -31,6 +39,7 @@ class Tracentic:
         "_attribute_limits",
         "_exporter",
         "_exit_registered",
+        "_pricing_warned",
     )
 
     def __init__(
@@ -53,6 +62,7 @@ class Tracentic:
         self._merger = AttributeMerger(global_context, attribute_limits)
         self._exporter = exporter
         self._exit_registered = False
+        self._pricing_warned: set[str] = set()
 
         if self._exporter is not None:
             self._register_exit_handler()
@@ -79,25 +89,49 @@ class Tracentic:
     def record_span(self, scope: TracenticScope, span: TracenticSpan, /) -> None: ...
     @overload
     def record_span(self, span: TracenticSpan, /) -> None: ...
+    @overload
+    def record_span(self, scope: TracenticScope, /, **fields: Any) -> None: ...
+    @overload
+    def record_span(self, /, **fields: Any) -> None: ...
 
     def record_span(
         self,
-        scope_or_span: TracenticScope | TracenticSpan,
+        scope_or_span: TracenticScope | TracenticSpan | None = None,
         span: TracenticSpan | None = None,
         /,
+        **fields: Any,
     ) -> None:
-        """Record a completed LLM span, optionally associated with a scope."""
+        """Record a completed LLM span, optionally associated with a scope.
+
+        Accepts either a ``TracenticSpan`` instance or keyword arguments
+        matching the ``TracenticSpan`` fields, e.g.::
+
+            tracentic.record_span(scope, started_at=..., ended_at=..., model=...)
+        """
         if isinstance(scope_or_span, TracenticScope):
-            if span is None:
+            scope = scope_or_span
+            actual_span = span if span is not None else (
+                TracenticSpan(**fields) if fields else None
+            )
+            if actual_span is None:
                 raise TypeError(
-                    "record_span(scope, span): span argument is required when "
-                    "the first argument is a TracenticScope"
+                    "record_span(scope, ...): pass a TracenticSpan or span "
+                    "fields as keyword arguments"
                 )
-            merged = self._merger.merge(scope_or_span, span.attributes)
-            self._record_internal(span, merged, scope_or_span)
-        else:
+            merged = self._merger.merge(scope, actual_span.attributes)
+            self._record_internal(actual_span, merged, scope)
+        elif isinstance(scope_or_span, TracenticSpan):
             merged = self._merger.merge(None, scope_or_span.attributes)
             self._record_internal(scope_or_span, merged, None)
+        elif fields:
+            actual_span = TracenticSpan(**fields)
+            merged = self._merger.merge(None, actual_span.attributes)
+            self._record_internal(actual_span, merged, None)
+        else:
+            raise TypeError(
+                "record_span(...): pass a TracenticSpan or span fields as "
+                "keyword arguments"
+            )
 
     @overload
     def record_error(
@@ -230,12 +264,12 @@ class Tracentic:
             span.model is None
             or span.input_tokens is None
             or span.output_tokens is None
-            or custom_pricing is None
         ):
             return
 
-        pricing = custom_pricing.get(span.model)
+        pricing = custom_pricing.get(span.model) if custom_pricing else None
         if pricing is None:
+            self._warn_missing_pricing(span.model)
             return
 
         cost = (
@@ -243,6 +277,17 @@ class Tracentic:
             + (span.output_tokens / 1_000_000) * pricing.output_cost_per_million
         )
         attrs["llm.cost.total_usd"] = cost
+
+    def _warn_missing_pricing(self, model: str) -> None:
+        if model in self._pricing_warned:
+            return
+        self._pricing_warned.add(model)
+        _logger.warning(
+            'No custom_pricing entry for model "%s" — llm.cost.total_usd '
+            "will be omitted. Pass custom_pricing to TracenticOptions to "
+            "enable cost tracking.",
+            model,
+        )
 
     def _register_exit_handler(self) -> None:
         if self._exit_registered:
@@ -303,6 +348,12 @@ def create_tracentic(options: TracenticOptions | None = None) -> Tracentic:
             api_key=opts.api_key,
             service_name=opts.service_name,
             environment=opts.environment,
+        )
+    else:
+        _logger.info(
+            "No api_key provided — spans will be created locally but not "
+            "exported. Pass api_key to TracenticOptions to send spans to "
+            "Tracentic."
         )
 
     return Tracentic(

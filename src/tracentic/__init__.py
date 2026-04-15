@@ -1,6 +1,12 @@
 """Tracentic SDK for Python — LLM observability with scoped tracing and OTLP export."""
 
-from ._client import Tracentic, configure, create_tracentic, get_tracentic
+from ._client import (
+    TRACENTIC_SCOPE_HEADER,
+    Tracentic,
+    configure,
+    create_tracentic,
+    get_tracentic,
+)
 from ._global_context import TracenticGlobalContext
 from ._options import AttributeLimits, ModelPricing, TracenticOptions
 from ._scope import TracenticScope
@@ -12,6 +18,7 @@ __all__ = [
     "configure",
     "get_tracentic",
     "Tracentic",
+    "TRACENTIC_SCOPE_HEADER",
     # Models
     "TracenticScope",
     "TracenticSpan",

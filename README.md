@@ -29,11 +29,19 @@ import asyncio
 from datetime import datetime, timezone
 from tracentic import TracenticOptions, TracenticSpan, create_tracentic
 
+from tracentic import ModelPricing
+
 tracentic = create_tracentic(TracenticOptions(
     api_key="your-api-key",
     endpoint="https://tracentic.dev",
     service_name="my-service",
     environment="production",
+    # Required for cost tracking. Without this, llm.cost.total_usd is
+    # omitted and the SDK warns once per unpriced model.
+    custom_pricing={
+        "claude-sonnet-4-20250514": ModelPricing(3.0, 15.0),
+        "gpt-4o": ModelPricing(2.5, 10.0),
+    },
 ))
 
 async def summarize(text: str) -> str:
@@ -43,7 +51,11 @@ async def summarize(text: str) -> str:
     result = await call_llm(text)
     ended_at = datetime.now(timezone.utc)
 
-    tracentic.record_span(scope, TracenticSpan(
+    # Pass span fields as keyword arguments — no need to construct
+    # TracenticSpan manually. (You can still pass a TracenticSpan
+    # instance if you prefer.)
+    tracentic.record_span(
+        scope,
         started_at=started_at,
         ended_at=ended_at,
         provider="anthropic",
@@ -51,7 +63,7 @@ async def summarize(text: str) -> str:
         input_tokens=result.usage.input_tokens,
         output_tokens=result.usage.output_tokens,
         operation_type="chat",
-    ))
+    )
 
     return result.text
 ```
@@ -107,6 +119,8 @@ tracentic.record_span(TracenticSpan(
 
 ### Custom pricing
 
+`custom_pricing` is required for cost tracking. The SDK does not ship with built-in pricing because model prices change frequently and vary by contract. If a span has token data but no matching pricing entry, `llm.cost.total_usd` is omitted and the SDK logs a warning once per model on the `tracentic` logger.
+
 ```python
 from tracentic import ModelPricing
 
@@ -118,8 +132,6 @@ tracentic = create_tracentic(TracenticOptions(
     },
 ))
 ```
-
-Cost is calculated automatically when a matching pricing entry exists and both token counts are present.
 
 ### Global attributes
 
@@ -166,46 +178,67 @@ Tracentic does not propagate scope IDs automatically — you pass them explicitl
 
 For cross-service linking to work, both services must integrate the Tracentic SDK (or implement the OTLP JSON ingest API directly) and their API keys must belong to the **same tenant**. Spans from different tenants are isolated and cannot be linked.
 
+Use the exported `TRACENTIC_SCOPE_HEADER` constant on both ends rather than a string literal — typos silently break linking.
+
 **Via HTTP header:**
 
 ```python
+from tracentic import TRACENTIC_SCOPE_HEADER
+
 # Service A — outgoing request
 scope = tracentic.begin("gateway-handler")
 response = await httpx.post(
     "https://worker.internal/process",
-    headers={"x-tracentic-scope-id": scope.id},
+    headers={TRACENTIC_SCOPE_HEADER: scope.id},
 )
 
 # Service B — incoming request (FastAPI example)
 @app.post("/process")
 async def process(request: Request):
-    parent_scope_id = request.headers.get("x-tracentic-scope-id")
+    parent_scope_id = request.headers.get(TRACENTIC_SCOPE_HEADER)
     linked = tracentic.begin("worker", parent_scope_id=parent_scope_id)
 ```
 
 **Via message queue:**
 
 ```python
+from tracentic import TRACENTIC_SCOPE_HEADER
+
 # Producer
 scope = tracentic.begin("order-processor")
 await queue.send(
     body=payload,
-    properties={"tracentic-scope-id": scope.id},
+    properties={TRACENTIC_SCOPE_HEADER: scope.id},
 )
 
 # Consumer
 async def handle(message):
-    parent_scope_id = message.properties["tracentic-scope-id"]
+    parent_scope_id = message.properties[TRACENTIC_SCOPE_HEADER]
     linked = tracentic.begin("fulfillment", parent_scope_id=parent_scope_id)
 ```
 
 ### Shutdown
 
-Flush buffered spans before process exit:
+Buffered spans are flushed automatically at process exit via an `atexit` handler, so you don't need to call `shutdown()` in normal use. Call it explicitly only if you want to flush at a specific point (e.g. before forking or when `atexit` won't run, such as on `os._exit()` or fatal signals):
 
 ```python
 await tracentic.shutdown()
 ```
+
+### Serverless (AWS Lambda, Google Cloud Functions)
+
+Serverless runtimes freeze or kill the process between invocations, so the `atexit` handler may never fire and any spans still in the buffer are lost. **Always `await tracentic.shutdown()` before your handler returns:**
+
+```python
+async def handler(event, context):
+    try:
+        return await do_work(event)
+    finally:
+        # Flush before the runtime freezes the container
+        await tracentic.shutdown()
+```
+
+Without this, you will see spans appear inconsistently — only when a container happens to be reused and the next invocation triggers a flush.
 
 ## Configuration reference
 

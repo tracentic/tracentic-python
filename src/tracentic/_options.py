@@ -65,7 +65,7 @@ class TracenticOptions:
 
     api_key: str | None = None
     service_name: str = "unknown-service"
-    endpoint: str = "https://ingest.tracentic.dev"
+    endpoint: str = "https://tracentic.dev"
     environment: str = "production"
     custom_pricing: dict[str, ModelPricing] | None = None
     global_attributes: dict[str, Any] | None = None
