@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 from uuid import uuid4
 
 

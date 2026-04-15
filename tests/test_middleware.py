@@ -42,7 +42,9 @@ async def _call(
     async def app(s: dict[str, Any], r: Any, sn: Any) -> None:
         observed.update(TracenticGlobalContext.current.get_all())
 
-    wrapped = TracenticMiddleware(app, request_attributes=middleware._request_attributes)
+    wrapped = TracenticMiddleware(
+        app, request_attributes=middleware._request_attributes
+    )
     await wrapped(scope, receive, send)
     return observed
 
