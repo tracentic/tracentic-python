@@ -13,7 +13,7 @@ class TracenticScope:
     """Represents a logical operation scope.
 
     Pass to :meth:`~Tracentic.record_span` to associate spans with this
-    operation.  Fire-and-forget — no disposal or end call required.
+    operation.  Fire-and-forget - no disposal or end call required.
 
     Create a root scope::
 
@@ -41,7 +41,8 @@ class TracenticScope:
         self._parent_id = parent_id
         self._correlation_id = correlation_id
         self._started_at = datetime.now(timezone.utc)
-        self._attributes: dict[str, Any] = dict(attributes) if attributes else {}
+        self._attributes: dict[str, Any] = dict(
+            attributes) if attributes else {}
 
     # ── Read-only properties ─────────────────────────────────────
 

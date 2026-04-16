@@ -5,6 +5,7 @@ Thanks for your interest in improving the Tracentic Python SDK. This guide cover
 ## Getting started
 
 Prerequisites:
+
 - Python 3.10 or newer
 - git
 
@@ -22,23 +23,24 @@ pytest
 ## Reporting bugs & requesting features
 
 Open an issue on GitHub. For bugs, include:
+
 - SDK version
 - Python version and OS
 - Minimal reproduction
 - What you expected vs. what happened
 
-For features, describe the use case first — the shape of the API usually follows from the problem.
+For features, describe the use case first - the shape of the API usually follows from the problem.
 
 ## Making a change
 
 1. Fork and create a branch off `main`.
-2. Keep the change focused — one logical change per PR.
+2. Keep the change focused - one logical change per PR.
 3. Add or update tests under `tests/`. New public behavior needs a test.
 4. Run the full suite: `pytest`.
 5. Lint and type-check: `ruff check .` and `mypy src`.
 6. Update `CHANGELOG.md` under `[Unreleased]` if the change is user-visible.
 7. Update `README.md` if you add or change a public API surface.
-8. Open a PR with a short description of **what** and **why** — the diff shows the how.
+8. Open a PR with a short description of **what** and **why** - the diff shows the how.
 
 ## Code style
 

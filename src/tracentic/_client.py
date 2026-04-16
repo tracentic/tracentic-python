@@ -1,4 +1,4 @@
-"""Tracentic SDK client — the main entry point."""
+"""Tracentic SDK client - the main entry point."""
 
 from __future__ import annotations
 
@@ -86,7 +86,9 @@ class Tracentic:
         )
 
     @overload
-    def record_span(self, scope: TracenticScope, span: TracenticSpan, /) -> None: ...
+    def record_span(self, scope: TracenticScope,
+                    span: TracenticSpan, /) -> None: ...
+
     @overload
     def record_span(self, span: TracenticSpan, /) -> None: ...
     @overload
@@ -141,6 +143,7 @@ class Tracentic:
         error: BaseException,
         /,
     ) -> None: ...
+
     @overload
     def record_error(
         self, span: TracenticSpan, error: BaseException, /
@@ -160,8 +163,10 @@ class Tracentic:
                     "record_error(scope, span, error): expected (TracenticScope, "
                     "TracenticSpan, BaseException)"
                 )
-            merged = self._merger.merge(scope_or_span, span_or_error.attributes)
-            self._record_error_internal(span_or_error, merged, error, scope_or_span)
+            merged = self._merger.merge(
+                scope_or_span, span_or_error.attributes)
+            self._record_error_internal(
+                span_or_error, merged, error, scope_or_span)
         else:
             if not isinstance(span_or_error, BaseException):
                 raise TypeError(
@@ -169,7 +174,8 @@ class Tracentic:
                     "BaseException"
                 )
             merged = self._merger.merge(None, scope_or_span.attributes)
-            self._record_error_internal(scope_or_span, merged, span_or_error, None)
+            self._record_error_internal(
+                scope_or_span, merged, span_or_error, None)
 
     async def shutdown(self) -> None:
         """Flush all buffered spans and shut down the exporter."""
@@ -237,7 +243,8 @@ class Tracentic:
         if span.output_tokens is not None:
             attrs["llm.usage.output_tokens"] = span.output_tokens
         if span.input_tokens is not None and span.output_tokens is not None:
-            attrs["llm.usage.total_tokens"] = span.input_tokens + span.output_tokens
+            attrs["llm.usage.total_tokens"] = span.input_tokens + \
+                span.output_tokens
 
         duration_ms = round(
             (span.ended_at.timestamp() - span.started_at.timestamp()) * 1000
@@ -274,7 +281,8 @@ class Tracentic:
 
         cost = (
             (span.input_tokens / 1_000_000) * pricing.input_cost_per_million
-            + (span.output_tokens / 1_000_000) * pricing.output_cost_per_million
+            + (span.output_tokens / 1_000_000) *
+            pricing.output_cost_per_million
         )
         attrs["llm.cost.total_usd"] = cost
 
@@ -283,7 +291,7 @@ class Tracentic:
             return
         self._pricing_warned.add(model)
         _logger.warning(
-            'No custom_pricing entry for model "%s" — llm.cost.total_usd '
+            'No custom_pricing entry for model "%s" - llm.cost.total_usd '
             "will be omitted. Pass custom_pricing to TracenticOptions to "
             "enable cost tracking.",
             model,
@@ -351,7 +359,7 @@ def create_tracentic(options: TracenticOptions | None = None) -> Tracentic:
         )
     else:
         _logger.info(
-            "No api_key provided — spans will be created locally but not "
+            "No api_key provided - spans will be created locally but not "
             "exported. Pass api_key to TracenticOptions to send spans to "
             "Tracentic."
         )
@@ -361,7 +369,8 @@ def create_tracentic(options: TracenticOptions | None = None) -> Tracentic:
         service_name=opts.service_name,
         endpoint=opts.endpoint,
         environment=opts.environment,
-        custom_pricing=dict(opts.custom_pricing) if opts.custom_pricing else None,
+        custom_pricing=dict(
+            opts.custom_pricing) if opts.custom_pricing else None,
         attribute_limits=opts.attribute_limits,
         exporter=exporter,
     )

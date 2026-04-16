@@ -1,4 +1,4 @@
-"""Tests for the ASGI middleware — per-request global attribute scoping."""
+"""Tests for the ASGI middleware - per-request global attribute scoping."""
 
 from __future__ import annotations
 
@@ -73,7 +73,8 @@ async def test_attributes_restored_after_request() -> None:
 
     mw = TracenticMiddleware(
         lambda s, r, sn: _noop(),
-        request_attributes=lambda _s: {"user_id": "u-1", "service": "override"},
+        request_attributes=lambda _s: {
+            "user_id": "u-1", "service": "override"},
     )
     await mw({"type": "http"}, _noop_receive, _noop_send)
 

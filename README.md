@@ -12,7 +12,7 @@ Requires **Python 3.10+**. The only runtime dependency is [httpx](https://www.py
 
 ## Endpoint
 
-Point the SDK at the Tracentic ingestion endpoint by setting `endpoint="https://tracentic.dev"` on `TracenticOptions`. This is the hosted service URL that receives spans over OTLP/HTTP JSON — use it unless you're running a self-hosted Tracentic deployment, in which case set your own URL.
+Point the SDK at the Tracentic ingestion endpoint by setting `endpoint="https://tracentic.dev"` on `TracenticOptions`. This is the hosted service URL that receives spans over OTLP/HTTP JSON - use it unless you're running a self-hosted Tracentic deployment, in which case set your own URL.
 
 ```python
 tracentic = create_tracentic(TracenticOptions(
@@ -51,7 +51,7 @@ async def summarize(text: str) -> str:
     result = await call_llm(text)
     ended_at = datetime.now(timezone.utc)
 
-    # Pass span fields as keyword arguments — no need to construct
+    # Pass span fields as keyword arguments - no need to construct
     # TracenticSpan manually. (You can still pass a TracenticSpan
     # instance if you prefer.)
     tracentic.record_span(
@@ -135,7 +135,7 @@ tracentic = create_tracentic(TracenticOptions(
 
 ### Global attributes
 
-Pass `global_attributes` to `create_tracentic()` via `TracenticOptions` to tag every span this service emits with the same static values — region, deployment version, owning team, cluster name. They're resolved once at startup and merged into every span without per-call bookkeeping:
+Pass `global_attributes` to `create_tracentic()` via `TracenticOptions` to tag every span this service emits with the same static values - region, deployment version, owning team, cluster name. They're resolved once at startup and merged into every span without per-call bookkeeping:
 
 ```python
 tracentic = create_tracentic(TracenticOptions(
@@ -159,7 +159,7 @@ scope = tracentic.begin("request", attributes={"region": "us-west-2"})
 # Spans in this scope carry region="us-west-2" (scope wins over global).
 ```
 
-For values that change after startup — a deploy ID rotated by a background job, a maintenance-mode flag — use `TracenticGlobalContext` to set/remove entries at runtime:
+For values that change after startup - a deploy ID rotated by a background job, a maintenance-mode flag - use `TracenticGlobalContext` to set/remove entries at runtime:
 
 ```python
 from tracentic import TracenticGlobalContext
@@ -189,25 +189,25 @@ app = TracenticMiddleware(
 
 ### Cross-service linking
 
-Tracentic does not propagate scope IDs automatically — you pass them explicitly through whatever transport connects your services (HTTP headers, message properties, etc.).
+Tracentic does not propagate scope IDs automatically - you pass them explicitly through whatever transport connects your services (HTTP headers, message properties, etc.).
 
 For cross-service linking to work, both services must integrate the Tracentic SDK (or implement the OTLP JSON ingest API directly) and their API keys must belong to the **same tenant**. Spans from different tenants are isolated and cannot be linked.
 
-Use the exported `TRACENTIC_SCOPE_HEADER` constant on both ends rather than a string literal — typos silently break linking.
+Use the exported `TRACENTIC_SCOPE_HEADER` constant on both ends rather than a string literal - typos silently break linking.
 
 **Via HTTP header:**
 
 ```python
 from tracentic import TRACENTIC_SCOPE_HEADER
 
-# Service A — outgoing request
+# Service A - outgoing request
 scope = tracentic.begin("gateway-handler")
 response = await httpx.post(
     "https://worker.internal/process",
     headers={TRACENTIC_SCOPE_HEADER: scope.id},
 )
 
-# Service B — incoming request (FastAPI example)
+# Service B - incoming request (FastAPI example)
 @app.post("/process")
 async def process(request: Request):
     parent_scope_id = request.headers.get(TRACENTIC_SCOPE_HEADER)
@@ -253,19 +253,19 @@ async def handler(event, context):
         await tracentic.shutdown()
 ```
 
-Without this, you will see spans appear inconsistently — only when a container happens to be reused and the next invocation triggers a flush.
+Without this, you will see spans appear inconsistently - only when a container happens to be reused and the next invocation triggers a flush.
 
 ## Configuration reference
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `api_key` | `None` | API key. If `None`, spans are created locally but not exported |
-| `service_name` | `"unknown-service"` | Service identifier in the dashboard |
-| `endpoint` | `"https://tracentic.dev"` | Tracentic ingestion endpoint. Use `https://tracentic.dev` for the hosted service. Override only for self-hosted deployments. |
-| `environment` | `"production"` | Deployment environment tag |
-| `custom_pricing` | `None` | Model pricing for cost calculation |
-| `global_attributes` | `None` | Static attributes on every span |
-| `attribute_limits` | platform defaults | Limits on attribute count, key/value length |
+| Option              | Default                   | Description                                                                                                                  |
+| ------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `api_key`           | `None`                    | API key. If `None`, spans are created locally but not exported                                                               |
+| `service_name`      | `"unknown-service"`       | Service identifier in the dashboard                                                                                          |
+| `endpoint`          | `"https://tracentic.dev"` | Tracentic ingestion endpoint. Use `https://tracentic.dev` for the hosted service. Override only for self-hosted deployments. |
+| `environment`       | `"production"`            | Deployment environment tag                                                                                                   |
+| `custom_pricing`    | `None`                    | Model pricing for cost calculation                                                                                           |
+| `global_attributes` | `None`                    | Static attributes on every span                                                                                              |
+| `attribute_limits`  | platform defaults         | Limits on attribute count, key/value length                                                                                  |
 
 ## Development
 
@@ -293,14 +293,14 @@ pytest tests/test_scope.py::TestTracenticScope::test_create_child_sets_parent_id
 
 ### Test files
 
-| File | What it covers |
-|------|----------------|
-| `test_tracentic.py` | SDK factory, singleton, begin/record_span/record_error, cost calculation |
-| `test_scope.py` | Scope creation, nesting, defensive copying, unique IDs |
-| `test_global_context.py` | Global context set/get/remove, singleton access, snapshots |
-| `test_attribute_merger.py` | Three-layer merge priority, key/value truncation, count cap |
-| `test_options.py` | AttributeLimits defaults, clamping, platform constants |
-| `test_exporter.py` | OTLP JSON structure, endpoint, headers, overflow, error handling |
+| File                       | What it covers                                                           |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `test_tracentic.py`        | SDK factory, singleton, begin/record_span/record_error, cost calculation |
+| `test_scope.py`            | Scope creation, nesting, defensive copying, unique IDs                   |
+| `test_global_context.py`   | Global context set/get/remove, singleton access, snapshots               |
+| `test_attribute_merger.py` | Three-layer merge priority, key/value truncation, count cap              |
+| `test_options.py`          | AttributeLimits defaults, clamping, platform constants                   |
+| `test_exporter.py`         | OTLP JSON structure, endpoint, headers, overflow, error handling         |
 
 ### Linting and type checking
 

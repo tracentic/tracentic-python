@@ -38,5 +38,5 @@ class TracenticSpan:
     """``"chat"``, ``"completion"``, ``"embedding"``"""
 
     attributes: dict[str, Any] = field(default_factory=dict)
-    """Call-specific attributes. Highest merge priority — overrides
+    """Call-specific attributes. Highest merge priority - overrides
     scope and global attributes on key collision."""

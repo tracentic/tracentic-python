@@ -25,12 +25,13 @@ class TracenticGlobalContext:
     """Store for global attributes applied to every span.
 
     Accessible via the :attr:`current` class attribute or passed directly.
-    ``get_all()`` returns a snapshot — callers cannot mutate internal state.
+    ``get_all()`` returns a snapshot - callers cannot mutate internal state.
     """
 
     _current: TracenticGlobalContext | None = None
 
-    current: TracenticGlobalContext = _CurrentDescriptor()  # type: ignore[assignment]
+    # type: ignore[assignment]
+    current: TracenticGlobalContext = _CurrentDescriptor()
 
     @classmethod
     def _set_current(cls, instance: TracenticGlobalContext) -> None:

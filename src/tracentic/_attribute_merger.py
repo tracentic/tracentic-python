@@ -15,7 +15,7 @@ class AttributeMerger:
 
     Priority (lowest -> highest): global -> scope -> span.
     On key collision the higher layer wins.  The merge always produces
-    a new dict — no input is mutated.
+    a new dict - no input is mutated.
 
     Enforces :class:`AttributeLimits` to prevent oversized payloads:
     keys and string values are truncated, and the total attribute count
@@ -39,7 +39,7 @@ class AttributeMerger:
     ) -> dict[str, Any]:
         # Build the result in priority order (span -> scope -> global) so that
         # when max_attribute_count is hit, the lower-priority layers are the
-        # ones dropped — never a span-level attribute.
+        # ones dropped - never a span-level attribute.
         result: dict[str, Any] = {}
 
         if span_attributes:
@@ -65,7 +65,7 @@ class AttributeMerger:
                 else key
             )
 
-            # Higher-priority layer already wrote this key — skip; do not let a
+            # Higher-priority layer already wrote this key - skip; do not let a
             # lower-priority layer overwrite it.
             if safe_key in result:
                 continue

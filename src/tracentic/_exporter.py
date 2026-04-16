@@ -76,7 +76,7 @@ class OtlpJsonExporter:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            # No running loop — spans will be flushed on shutdown()
+            # No running loop - spans will be flushed on shutdown()
             return
         self._shutdown_event = asyncio.Event()
         self._client = httpx.AsyncClient(timeout=5.0)
@@ -154,7 +154,7 @@ class OtlpJsonExporter:
             )
             if not response.is_success:
                 _log.warning(
-                    "Tracentic export failed: %d %s — %s",
+                    "Tracentic export failed: %d %s - %s",
                     response.status_code,
                     response.reason_phrase,
                     response.text,
@@ -209,7 +209,7 @@ def _attr(key: str, value: Any) -> dict[str, Any]:
     if isinstance(value, str):
         return {"key": key, "value": {"stringValue": value}}
     if isinstance(value, bool):
-        # Check bool before int — bool is a subclass of int in Python
+        # Check bool before int - bool is a subclass of int in Python
         return {"key": key, "value": {"boolValue": value}}
     if isinstance(value, int):
         return {"key": key, "value": {"intValue": str(value)}}

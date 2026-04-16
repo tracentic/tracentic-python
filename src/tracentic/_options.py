@@ -29,7 +29,8 @@ class AttributeLimits:
     PLATFORM_MAX_STRING_VALUE_LENGTH: int = _PLATFORM_MAX_STRING_VALUE_LENGTH
     PLATFORM_MAX_KEY_LENGTH: int = _PLATFORM_MAX_KEY_LENGTH
 
-    __slots__ = ("max_attribute_count", "max_string_value_length", "max_key_length")
+    __slots__ = ("max_attribute_count",
+                 "max_string_value_length", "max_key_length")
 
     def __init__(
         self,
@@ -43,7 +44,8 @@ class AttributeLimits:
         self.max_string_value_length = _clamp(
             max_string_value_length, 1, _PLATFORM_MAX_STRING_VALUE_LENGTH
         )
-        self.max_key_length = _clamp(max_key_length, 1, _PLATFORM_MAX_KEY_LENGTH)
+        self.max_key_length = _clamp(
+            max_key_length, 1, _PLATFORM_MAX_KEY_LENGTH)
 
 
 @dataclass(slots=True)
@@ -52,7 +54,7 @@ class TracenticOptions:
 
     Attributes:
         api_key: Your Tracentic API key. If ``None``, spans are created
-            locally but not exported — enables local dev without an account.
+            locally but not exported - enables local dev without an account.
         service_name: Identifies your service in the dashboard.
         endpoint: OTLP ingestion endpoint. Defaults to Tracentic cloud.
         environment: Deployment environment tag.

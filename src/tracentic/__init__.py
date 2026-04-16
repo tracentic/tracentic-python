@@ -1,4 +1,4 @@
-"""Tracentic SDK for Python — LLM observability with scoped tracing and OTLP export."""
+"""Tracentic SDK for Python - LLM observability with scoped tracing and OTLP export."""
 
 from ._client import (
     TRACENTIC_SCOPE_HEADER,
