@@ -135,26 +135,41 @@ tracentic = create_tracentic(TracenticOptions(
 
 ### Global attributes
 
-Static attributes applied to every span:
+Pass `global_attributes` to `create_tracentic()` via `TracenticOptions` to tag every span this service emits with the same static values — region, deployment version, owning team, cluster name. They're resolved once at startup and merged into every span without per-call bookkeeping:
 
 ```python
 tracentic = create_tracentic(TracenticOptions(
     api_key="...",
+    service_name="my-service",
+    environment="production",
     global_attributes={
         "region": "us-east-1",
         "version": "2.1.0",
+        "team": "platform",
     },
 ))
+
+# Every span this service emits now carries region, version, team.
 ```
 
-Dynamic attributes can be set/removed at runtime:
+Scope and per-span attributes override global values on key collision, so `global_attributes` is the right layer for defaults you want everywhere unless something more specific says otherwise:
+
+```python
+scope = tracentic.begin("request", attributes={"region": "us-west-2"})
+# Spans in this scope carry region="us-west-2" (scope wins over global).
+```
+
+For values that change after startup — a deploy ID rotated by a background job, a maintenance-mode flag — use `TracenticGlobalContext` to set/remove entries at runtime:
 
 ```python
 from tracentic import TracenticGlobalContext
 
 TracenticGlobalContext.current.set("deploy_id", "deploy-abc")
+# ... spans recorded now include deploy_id ...
 TracenticGlobalContext.current.remove("deploy_id")
 ```
+
+`TracenticGlobalContext` is process-wide (not `contextvars`-based), so values set from one request's handler will leak into every other request running concurrently. For ambient per-request data (user ID, tenant, request ID), use the ASGI middleware below instead.
 
 ### ASGI middleware
 
