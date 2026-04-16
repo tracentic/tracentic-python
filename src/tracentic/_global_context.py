@@ -30,8 +30,7 @@ class TracenticGlobalContext:
 
     _current: TracenticGlobalContext | None = None
 
-    # type: ignore[assignment]
-    current: TracenticGlobalContext = _CurrentDescriptor()
+    current: TracenticGlobalContext = _CurrentDescriptor()  # type: ignore[assignment]
 
     @classmethod
     def _set_current(cls, instance: TracenticGlobalContext) -> None:
