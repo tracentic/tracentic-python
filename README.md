@@ -266,6 +266,57 @@ Without this, you will see spans appear inconsistently - only when a container h
 | `custom_pricing`    | `None`                    | Model pricing for cost calculation                                                                                           |
 | `global_attributes` | `None`                    | Static attributes on every span                                                                                              |
 | `attribute_limits`  | platform defaults         | Limits on attribute count, key/value length                                                                                  |
+| `export_timeout_s`  | `30.0`                    | Per-request timeout in seconds for OTLP exports                                                                              |
+| `debug`             | `False`                   | Enable verbose diagnostic logging (see [Debugging](#debugging) below)                                                        |
+
+## Debugging
+
+By default the SDK only logs warnings and errors - export failures, queue overflow, and missing pricing entries. To see the full lifecycle of spans (enqueue, flush, export success, shutdown), enable debug mode:
+
+```python
+tracentic = create_tracentic(TracenticOptions(
+    api_key="...",
+    service_name="my-service",
+    debug=True,
+))
+```
+
+With `debug=True`, the SDK sets the `tracentic` logger to `DEBUG` level and attaches a stream handler (if none exists) so messages appear on stderr. Example output:
+
+```
+[tracentic] debug logging enabled
+[tracentic] enqueued span 'llm.anthropic.chat' (queue: 1)
+[tracentic] flushing 1 span(s) to https://tracentic.dev/v1/ingest
+[tracentic] export succeeded: 200 (1 spans)
+[tracentic] shutting down exporter...
+[tracentic] exporter shutdown complete
+```
+
+Warnings are always emitted regardless of the debug flag:
+
+```
+WARNING:tracentic:Tracentic export failed: 401 Unauthorized - {"error":"invalid api key"}
+WARNING:tracentic:Tracentic export error: ConnectError(...)
+WARNING:tracentic:Tracentic export queue full (512) - dropping oldest span
+```
+
+If you already configure the `tracentic` logger elsewhere (e.g. via `logging.basicConfig` or a framework), you can skip the `debug` flag and set the level yourself:
+
+```python
+import logging
+logging.getLogger("tracentic").setLevel(logging.DEBUG)
+```
+
+### Export timeout
+
+The `export_timeout_s` option controls the per-request timeout for OTLP exports (default: 30 seconds). If exports are timing out in your environment (e.g. CI runners, serverless cold starts), increase it:
+
+```python
+tracentic = create_tracentic(TracenticOptions(
+    api_key="...",
+    export_timeout_s=60.0,  # 60 seconds
+))
+```
 
 ## Development
 

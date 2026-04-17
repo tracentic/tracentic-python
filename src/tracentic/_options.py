@@ -63,6 +63,9 @@ class TracenticOptions:
         global_attributes: Static attributes applied to every span for the
             lifetime of the application.
         attribute_limits: Limits applied to user-supplied attributes.
+        debug: Enable verbose diagnostic logging. When ``True``, the SDK
+            logs detailed information about span recording, batching,
+            export requests, and shutdown at DEBUG level.
     """
 
     api_key: str | None = None
@@ -72,6 +75,8 @@ class TracenticOptions:
     custom_pricing: dict[str, ModelPricing] | None = None
     global_attributes: dict[str, Any] | None = None
     attribute_limits: AttributeLimits = field(default_factory=AttributeLimits)
+    export_timeout_s: float = 30.0
+    debug: bool = False
 
 
 def _clamp(value: int, lo: int, hi: int) -> int:

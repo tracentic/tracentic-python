@@ -309,8 +309,8 @@ class Tracentic:
                     loop.create_task(self.shutdown())
                 else:
                     loop.run_until_complete(self.shutdown())
-            except RuntimeError:
-                pass
+            except RuntimeError as exc:
+                _logger.warning("Tracentic flush on exit failed: %s", exc)
 
         atexit.register(_flush_on_exit)
 
@@ -342,6 +342,17 @@ def create_tracentic(options: TracenticOptions | None = None) -> Tracentic:
     """
     opts = options or TracenticOptions()
 
+    if opts.debug:
+        tracentic_logger = logging.getLogger("tracentic")
+        tracentic_logger.setLevel(logging.DEBUG)
+        if not tracentic_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(
+                logging.Formatter("[tracentic] %(message)s")
+            )
+            tracentic_logger.addHandler(handler)
+        _logger.debug("debug logging enabled")
+
     global_context = TracenticGlobalContext()
     TracenticGlobalContext._set_current(global_context)
 
@@ -356,6 +367,7 @@ def create_tracentic(options: TracenticOptions | None = None) -> Tracentic:
             api_key=opts.api_key,
             service_name=opts.service_name,
             environment=opts.environment,
+            export_timeout_s=opts.export_timeout_s,
         )
     else:
         _logger.info(

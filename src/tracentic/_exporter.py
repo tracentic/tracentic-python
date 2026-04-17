@@ -37,8 +37,8 @@ class OtlpJsonExporter:
     """Batched OTLP JSON exporter.
 
     Spans are enqueued and periodically flushed to the ingestion
-    endpoint via HTTP POST.  Export failures are silently ignored
-    (fire-and-forget).
+    endpoint via HTTP POST.  Export failures are logged at WARNING
+    level and do not raise exceptions (fire-and-forget).
     """
 
     __slots__ = (
@@ -46,6 +46,7 @@ class OtlpJsonExporter:
         "_api_key",
         "_service_name",
         "_environment",
+        "_export_timeout_s",
         "_queue",
         "_task",
         "_shutdown_event",
@@ -59,11 +60,13 @@ class OtlpJsonExporter:
         api_key: str,
         service_name: str,
         environment: str,
+        export_timeout_s: float = 30.0,
     ) -> None:
         self._endpoint = f"{endpoint.rstrip('/')}/v1/ingest"
         self._api_key = api_key
         self._service_name = service_name
         self._environment = environment
+        self._export_timeout_s = export_timeout_s
         self._queue: list[ExportableSpan] = []
         self._task: asyncio.Task[None] | None = None
         self._shutdown_event: asyncio.Event | None = None
@@ -79,18 +82,26 @@ class OtlpJsonExporter:
             # No running loop - spans will be flushed on shutdown()
             return
         self._shutdown_event = asyncio.Event()
-        self._client = httpx.AsyncClient(timeout=5.0)
+        self._client = httpx.AsyncClient(timeout=self._export_timeout_s)
         self._task = loop.create_task(self._run())
 
     def enqueue(self, span: ExportableSpan) -> None:
         """Add a span to the export queue."""
         if len(self._queue) >= _MAX_QUEUE_SIZE:
+            _log.warning(
+                "Tracentic export queue full (%d) - dropping oldest span",
+                _MAX_QUEUE_SIZE,
+            )
             self._queue.pop(0)
         self._queue.append(span)
+        _log.debug(
+            "enqueued span %r (queue: %d)", span.name, len(self._queue)
+        )
         self._ensure_started()
 
     async def shutdown(self) -> None:
         """Flush all remaining spans and stop the background task."""
+        _log.debug("shutting down exporter...")
         if self._shutdown_event is not None:
             self._shutdown_event.set()
         if self._task is not None:
@@ -100,6 +111,7 @@ class OtlpJsonExporter:
         if self._client is not None:
             await self._client.aclose()
             self._client = None
+        _log.debug("exporter shutdown complete")
 
     # ── Internal ─────────────────────────────────────────────────
 
@@ -121,6 +133,7 @@ class OtlpJsonExporter:
 
         batch = self._queue[: _MAX_BATCH_SIZE]
         del self._queue[: _MAX_BATCH_SIZE]
+        _log.debug("flushing %d span(s) to %s", len(batch), self._endpoint)
 
         otlp_spans = [self._convert_span(s) for s in batch]
         request_body = {
@@ -159,15 +172,21 @@ class OtlpJsonExporter:
                     response.reason_phrase,
                     response.text,
                 )
+            else:
+                _log.debug(
+                    "export succeeded: %d (%d spans)",
+                    response.status_code,
+                    len(batch),
+                )
 
         try:
             if self._client is not None:
                 await _post(self._client)
             else:
-                async with httpx.AsyncClient(timeout=5.0) as client:
+                async with httpx.AsyncClient(timeout=self._export_timeout_s) as client:
                     await _post(client)
         except Exception as exc:
-            _log.debug("Tracentic export error: %s", exc)
+            _log.warning("Tracentic export error: %s", exc)
 
         # If there are still items in the queue, flush again
         if self._queue:
