@@ -14,7 +14,7 @@ import httpx
 
 _log = logging.getLogger("tracentic")
 
-_SDK_VERSION = "0.1.0"
+_SDK_VERSION = "0.3.0"
 
 _SCHEDULED_DELAY_S = 5.0
 _MAX_QUEUE_SIZE = 512
